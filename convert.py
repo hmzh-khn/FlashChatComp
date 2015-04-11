@@ -13,7 +13,7 @@ SHIFT_VAL = values[-1]
 SENTINEL = "00010101010101000"
 
 
-rsEncoder = rs.RSCoder(len(values),20)
+rsEncoder = rs.RSCoder(len(values),25)
 
 def changeListBase(arr, oldbase, newbase):
 	temp = reduce(lambda a, val: a*oldbase + val, arr, 0)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
 	e =  '{:b}'.format(random.randint(0,2**random.randint(3,20))) \
 		+ makeMessage('m',"Testing") \
 		+ '{:b}'.format(random.randint(0,2**random.randint(3,20))) \
-		+ makeMessage('m',"Potato salad!") \
+		+ makeMessage('m',"Test") \
 		+ '{:b}'.format(random.randint(0,2**random.randint(3,20)))
 	print(e)
 
