@@ -95,6 +95,7 @@ class MessageDecoder:
 			#print self.state, self.bits
 			if self.state == "scanning":
 				if self.bits == SENTINEL:
+					print "FOUND SENTINEL!"
 					self.state = "header_type"
 					self.bits = ""
 				while not SENTINEL.startswith(self.bits):
@@ -103,6 +104,7 @@ class MessageDecoder:
 				if self.state == "header_type":
 					self.message['type'] = decode(self.bits)
 					self.state = "header_size"
+					print "Got header type {}".format(self.message['type'])
 				elif self.state == "header_size":
 					if self.counter == 0:
 						self.message['size'] = values.index(self.bits)
@@ -111,10 +113,11 @@ class MessageDecoder:
 						self.message['size'] = self.message['size']*len(values) + values.index(self.bits)
 						self.counter = 0
 						self.state = "header_checksum"
+						print "Got header size {}".format(self.message['size'])
 				elif self.state == "header_checksum":
 					self.message['checksum'] = self.bits
 					self.state = "body"
-					print self.message
+					print "Got header checksum {}".format(self.message['checksum'])
 				elif self.state == "body":
 					self.data += self.bits
 					self.counter += 1
@@ -123,10 +126,13 @@ class MessageDecoder:
 						if cs == self.message['checksum']:
 							self.message['body'] = decode(self.data)
 							result = self.message
+							print "Got message body! {}".format(self.message['body'])
 							self.reset()
 							return result
 						else:
 							print "Invalid checksum!"
+							self.message['body'] = decode(self.data)
+							print "Got (invalid) message body! {}".format(self.message['body'])
 							self.reset()
 				self.bits = ""
 				return None
