@@ -5,7 +5,7 @@ import random
 from pygame.locals import *
 import convert
 
-FRAME_RATE = 40
+FRAME_RATE = 1000./180 #1000./80
 
 Clock = pygame.time.Clock
 
@@ -39,14 +39,20 @@ print "Using pygame v" + pygame.__version__
 if __name__ == "__main__":
 	pygame.init()
 
-	size = width, height = 320, 240
+	size = width, height = 1000, 600
+	upZero = 255, 0,0
+	downZero = 0, 0,0
+	upOne  = 255, 0,255
+	downOne  = 0, 0,255
+
 	black = 0, 0, 0
 	white = 255, 255, 255
 
 	screen = pygame.display.set_mode(size)
 	clock = Clock()
 	# isBlack = True
-	bits = convert.makeMessage("m","POOP")
+	isUp = False
+	bits = convert.makeMessage("m","Testing")
 
 	while True:
 		for bit in bits:
@@ -56,11 +62,16 @@ if __name__ == "__main__":
 			time = clock.tick_busy_loop(FRAME_RATE)
 			print float(time)
 
-			if bit == '1':
-				screen.fill(white)
-				# isBlack = False
+			if isUp:
+				if bit == '1':
+					screen.fill(upOne)
+				else:
+					screen.fill(upZero)
 			else:
-				screen.fill(black)
-				# isBlack = True
+				if bit == '1':
+					screen.fill(downOne)
+				else:
+					screen.fill(downZero)
+			isUp = not isUp
 
 			pygame.display.flip()
