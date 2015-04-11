@@ -1,5 +1,6 @@
 import re
 import random
+import rs
 
 skip = [0b101010, 0b010101, 0b000000, 0b111111];
 values = ["{:06b}".format(x) for x in range(0, 2**6) if not x in skip]
@@ -11,42 +12,63 @@ SHIFT_VAL = values[-1]
 
 SENTINEL = "00010101010101000"
 
-def encode(s):
+
+rsEncoder = rs.RSCoder(len(values),len(values)-1)
+
+def changeListBase(arr, oldbase, newbase):
+	temp = reduce(lambda a, val: a*oldbase + val, arr, 0)
 	res = []
-	for c in s:
-		if c in lowChars:
-			idx = lowChars.index(c)
-			res.append(values[idx])
-		elif c in highChars:
-			idx = highChars.index(c)
-			res.append(SHIFT_VAL)
-			res.append(values[idx])
-	return ''.join(res)
+	while temp > 0:
+		res.append(int(temp % newbase))
+		temp /= newbase
+	res.reverse()
+	return res
+
+def encode(s):
+	rsenc = rsEncoder.encode(s)
+	indices = changeListBase(rsenc, 256, len(values))
+	return ''.join(values[i] for i in indices)
+
+	# for c in s:
+	# 	if c in lowChars:
+	# 		idx = lowChars.index(c)
+	# 		res.append(values[idx])
+	# 	elif c in highChars:
+	# 		idx = highChars.index(c)
+	# 		res.append(SHIFT_VAL)
+	# 		res.append(values[idx])
+	# return ''.join(res)
 
 def decode(bits):
-	res = []
-	wasShift = False
-	for b in re.findall(".{6}",bits):
-		try:
-			if b == SHIFT_VAL:
-				wasShift = True
-			else:
-				idx = values.index(b)
-				if wasShift:
-					res.append(highChars[idx])
-				else:
-					res.append(lowChars[idx])
-				wasShift = False
-		except:
-			pass
-	return ''.join(res)
+	parts = re.findall(".{6}",bits)
+	indices = [values.index(seq) for seq in parts]
+	rsenc = changeListBase(indices, len(values), 256)
+	result = rsEncoder.decode(rsenc)
+	return result
 
-def checksum(bits):
-	sum = 0
-	for b in re.findall(".{6}",bits):
-		sum += int(b,2)
-	csidx = sum % len(values)
-	return values[csidx]
+	# res = []
+	# wasShift = False
+	# for b in re.findall(".{6}",bits):
+	# 	try:
+	# 		if b == SHIFT_VAL:
+	# 			wasShift = True
+	# 		else:
+	# 			idx = values.index(b)
+	# 			if wasShift:
+	# 				res.append(highChars[idx])
+	# 			else:
+	# 				res.append(lowChars[idx])
+	# 			wasShift = False
+	# 	except:
+	# 		pass
+	# return ''.join(res)
+
+# def checksum(bits):
+# 	sum = 0
+# 	for b in re.findall(".{6}",bits):
+# 		sum += int(b,2)
+# 	csidx = sum % len(values)
+# 	return values[csidx]
 
 def makeMessage(type,body):
 	t = values[lowChars.index(type)]
@@ -54,9 +76,9 @@ def makeMessage(type,body):
 	datasize = len(encoded)/6
 	if(datasize >= len(values)**2):
 		raise Exception("Message is too long.")
-	cs = checksum(encoded)
+	# cs = checksum(encoded)
 
-	print t,datasize, cs
+	print t,datasize
 
 	sizeBit1 = datasize / len(values)
 	sizeBit2 = datasize % len(values)
@@ -65,7 +87,7 @@ def makeMessage(type,body):
 	msg.append(t)
 	msg.append(values[sizeBit1])
 	msg.append(values[sizeBit2])
-	msg.append(cs)
+	# msg.append(cs)
 	msg.append(encoded)
 
 	#print msg
@@ -102,7 +124,7 @@ class MessageDecoder:
 					self.bits = self.bits[1:]
 			elif len(self.bits) == 6:
 				if self.state == "header_type":
-					self.message['type'] = decode(self.bits)
+					self.message['type'] = lowChars[values.index(self.bits)]
 					self.state = "header_size"
 					print "Got header type {}".format(self.message['type'])
 				elif self.state == "header_size":
@@ -112,32 +134,25 @@ class MessageDecoder:
 					elif self.counter == 1:
 						self.message['size'] = self.message['size']*len(values) + values.index(self.bits)
 						self.counter = 0
-						self.state = "header_checksum"
+						self.state = "body"
 						print "Got header size {}".format(self.message['size'])
-				elif self.state == "header_checksum":
-					self.message['checksum'] = self.bits
-					self.state = "body"
-					print "Got header checksum {}".format(self.message['checksum'])
+				# elif self.state == "header_checksum":
+				# 	self.message['checksum'] = self.bits
+				# 	self.state = "body"
+				# 	print "Got header checksum {}".format(self.message['checksum'])
 				elif self.state == "body":
 					self.data += self.bits
 					self.counter += 1
 					if self.counter >= self.message['size']:
-						cs = checksum(self.data)
-						if cs == self.message['checksum']:
-							self.message['body'] = decode(self.data)
-							result = self.message
-							print "Got message body! {}".format(self.message['body'])
-							self.reset()
-							return result
-						else:
-							print "Invalid checksum!"
-							self.message['body'] = decode(self.data)
-							print "Got (invalid) message body! {}".format(self.message['body'])
-							self.reset()
+						self.message['body'] = decode(self.data)
+						result = self.message
+						print "Got message body! {}".format(self.message['body'])
+						self.reset()
+						return result
 				self.bits = ""
 				return None
 		except ValueError, e:
-			print "BAD LOOKUP"
+			print "VALUE ERROR"
 			print e
 			reset()
 			return None
@@ -154,7 +169,7 @@ class MessageDecoder:
 
 if __name__ == '__main__':
 	e =  '{:b}'.format(random.randint(0,2**random.randint(3,20))) \
-		+ makeMessage('m',"If you pass the optional framerate argument the function will delay to keep the game running slower than the given ticks per second. This can be used to help limit the runtime speed of a game. By calling Clock.tick_busy_loop(40) once per frame, the program will never run at more than 40 frames per second.") \
+		+ makeMessage('m',"Ice cream") \
 		+ '{:b}'.format(random.randint(0,2**random.randint(3,20))) \
 		+ makeMessage('m',"Potato salad!") \
 		+ '{:b}'.format(random.randint(0,2**random.randint(3,20)))
