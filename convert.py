@@ -74,19 +74,18 @@ def makeMessage(type,body):
 	t = values[lowChars.index(type)]
 	encoded = encode(body)
 	datasize = len(encoded)/6
-	if(datasize >= len(values)**2):
+	if(datasize >= len(values)):
 		raise Exception("Message is too long.")
 	# cs = checksum(encoded)
 
 	print t,datasize
 
-	sizeBit1 = datasize / len(values)
-	sizeBit2 = datasize % len(values)
+	# sizeBit1 = datasize / len(values)
+	# sizeBit2 = datasize % len(values)
 
 	msg = [SENTINEL]
 	msg.append(t)
-	msg.append(values[sizeBit1])
-	msg.append(values[sizeBit2])
+	msg.append(values[datasize])
 	# msg.append(cs)
 	msg.append(encoded)
 
@@ -130,10 +129,6 @@ class MessageDecoder:
 				elif self.state == "header_size":
 					if self.counter == 0:
 						self.message['size'] = values.index(self.bits)
-						self.counter += 1
-					elif self.counter == 1:
-						self.message['size'] = self.message['size']*len(values) + values.index(self.bits)
-						self.counter = 0
 						self.state = "body"
 						print "Got header size {}".format(self.message['size'])
 				# elif self.state == "header_checksum":
@@ -154,7 +149,7 @@ class MessageDecoder:
 		except ValueError, e:
 			print "VALUE ERROR"
 			print e
-			reset()
+			self.reset()
 			return None
 
 
