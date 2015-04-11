@@ -3,8 +3,9 @@ import pygame
 import sys
 import random
 from pygame.locals import *
+import convert
 
-FRAME_RATE = 60
+FRAME_RATE = 40
 
 Clock = pygame.time.Clock
 
@@ -44,20 +45,22 @@ if __name__ == "__main__":
 
 	screen = pygame.display.set_mode(size)
 	clock = Clock()
-	isBlack = True
+	# isBlack = True
+	bits = convert.makeMessage("m","POOP")
 
 	while True:
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT: sys.exit()
+		for bit in bits:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT: sys.exit()
 
-		time = clock.tick_busy_loop(FRAME_RATE)
-		print float(time)
+			time = clock.tick_busy_loop(FRAME_RATE)
+			print float(time)
 
-		if isBlack:
-			screen.fill(white)
-			isBlack = False
-		else:
-			screen.fill(black)
-			isBlack = True
+			if bit == '1':
+				screen.fill(white)
+				# isBlack = False
+			else:
+				screen.fill(black)
+				# isBlack = True
 
-		pygame.display.flip()
+			pygame.display.flip()
