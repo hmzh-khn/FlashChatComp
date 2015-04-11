@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
 	size = width, height = 1000, 600
 	upZero = 255, 0,0
-	downZero = 0, 0,0
+	downZero = 0, 200,0
 	upOne  = 255, 0,255
 	downOne  = 0, 0,255
 
